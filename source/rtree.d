@@ -2,11 +2,11 @@ module rtree;
 
 /// \class RTree
 /// Implementation of RTree, a multidimensional bounding rectangle tree.
-/// Example usage: For a 3-dimensional tree use RTree<Object*, float, 3> myTree;
+/// Example usage: For a 3-dimensional tree use RTree!(Object, float, 3) myTree;
 ///
-/// This modified, templated C++ version by Greg Douglas at Auran (http://www.auran.com)
+/// This is ported to D C++ version by Greg Douglas at Auran (http://www.auran.com)
 ///
-/// DATATYPE Referenced data, should be int, void*, obj* etc. no larger than sizeof<void*> and simple type
+/// DATATYPE Referenced data, should be int, void*, obj* etc. no larger than (void*).sizeof and simple type
 /// ELEMTYPE Type of element such as int or float
 /// NUMDIMS Number of dimensions such as 2 or 3
 /// ELEMTYPEREAL Type of element that allows fractional and large values such as float or double, for use in volume calcs
@@ -17,37 +17,33 @@ module rtree;
 ///        array similar to MFC CArray or STL Vector for returning search query result.
 ///
 class RTree(DATATYPE, ELEMTYPE, alias NUMDIMS,
-	ELEMTYPEREAL, alias int TMAXNODES = 8, alias int TMINNODES = TMAXNODES / 2)
+	ELEMTYPEREAL, alias int MAXNODES = 8, alias int MINNODES = MAXNODES / 2)
 {
 public:
 
-	enum
-	{
-		MAXNODES = TMAXNODES,                         ///< Max elements in node
-		MINNODES = TMINNODES,                         ///< Min elements in node
-	}
+	// Precomputed volumes of the unit spheres for the first few dimensions
+	enum float[] UnitSphereVolume = [
+		0.000000f, 2.000000f, 3.141593f, // Dimension  0,1,2
+		4.188790f, 4.934802f, 5.263789f, // Dimension  3,4,5
+		5.167713f, 4.724766f, 4.058712f, // Dimension  6,7,8
+		3.298509f, 2.550164f, 1.884104f, // Dimension  9,10,11
+		1.335263f, 0.910629f, 0.599265f, // Dimension  12,13,14
+		0.381443f, 0.235331f, 0.140981f, // Dimension  15,16,17
+		0.082146f, 0.046622f, 0.025807f, // Dimension  18,19,20
+	];
 
-	alias t_resultCallback = bool function(DATATYPE, void*);
+	/// Unit sphere constant for required number of dimensions
+	enum unitSphereVolume = cast(ELEMTYPEREAL) UnitSphereVolume[NUMDIMS];
+
+	alias Callback = bool function(DATATYPE, void*);
 
 	this()
 	{
 		static assert(MAXNODES > MINNODES);
 		static assert(MINNODES > 0);
 
-		// Precomputed volumes of the unit spheres for the first few dimensions
-		const float[] UNIT_SPHERE_VOLUMES = [
-			0.000000f, 2.000000f, 3.141593f, // Dimension  0,1,2
-			4.188790f, 4.934802f, 5.263789f, // Dimension  3,4,5
-			5.167713f, 4.724766f, 4.058712f, // Dimension  6,7,8
-			3.298509f, 2.550164f, 1.884104f, // Dimension  9,10,11
-			1.335263f, 0.910629f, 0.599265f, // Dimension  12,13,14
-			0.381443f, 0.235331f, 0.140981f, // Dimension  15,16,17
-			0.082146f, 0.046622f, 0.025807f, // Dimension  18,19,20
-		];
-
 		m_root = AllocNode();
 		m_root.m_level = 0;
-		m_unitSphereVolume = cast(ELEMTYPEREAL) UNIT_SPHERE_VOLUMES[NUMDIMS];
 	}
 
 	~this()
@@ -114,7 +110,7 @@ public:
 	/// \param a_resultCallback Callback function to return result.  Callback should return 'true' to continue searching
 	/// \param a_context User context to pass as parameter to a_resultCallback
 	/// \return Returns the number of entries found
-	int Search(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, t_resultCallback a_resultCallback, void* a_context)
+	int Search(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, Callback a_resultCallback, void* a_context)
 	{
 		debug
 		{
@@ -650,15 +646,15 @@ protected:
 		// Pow maybe slow, so test for common dims like 2,3 and just use x*x, x*x*x.
 		static if(NUMDIMS == 3)
 		{
-			return (radius * radius * radius * m_unitSphereVolume);
+			return (radius * radius * radius * unitSphereVolume);
 		}
 		else static if(NUMDIMS == 2)
 		{
-			return (radius * radius * m_unitSphereVolume);
+			return (radius * radius * unitSphereVolume);
 		}
 		else
 		{
-			return cast(ELEMTYPEREAL) (pow(radius, NUMDIMS) * m_unitSphereVolume);
+			return cast(ELEMTYPEREAL) (pow(radius, NUMDIMS) * unitSphereVolume);
 		}
 	}
 
@@ -1006,7 +1002,7 @@ protected:
 		*a_listNode = newListNode;
 	}
 
-	bool Search(Node* a_node, Rect* a_rect, ref int a_foundCount, t_resultCallback a_resultCallback, void* a_context)
+	bool Search(Node* a_node, Rect* a_rect, ref int a_foundCount, Callback a_resultCallback, void* a_context)
 	{
 		assert(a_node);
 		assert(a_node.m_level >= 0);
@@ -1077,5 +1073,4 @@ protected:
 //  bool LoadRec(Node* a_node, RTFileStream& a_stream);
 
 	Node* m_root;                                    ///< Root of tree
-	const ELEMTYPEREAL m_unitSphereVolume;                 ///< Unit sphere constant for required number of dimensions
 }
