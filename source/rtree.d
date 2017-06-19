@@ -8,10 +8,10 @@ module rtree;
  * This is ported to D $(LINK2 https://github.com/nushoin/RTree, C++ version by Yariv Barkan).
  *
  * Params:
- * DATATYPE = Referenced data, should be int, void*, obj* etc. no larger than (void*).sizeof and simple type
- * ELEMTYPE = Type of element such as int or float
- * NUMDIMS  = Number of dimensions such as 2 or 3
- * ELEMTYPEREAL = Type of element that allows fractional and large values such as float or double, for use in volume calcs
+ * DataType = Referenced data, should be int, void*, obj* etc. no larger than (void*).sizeof and simple type
+ * ElemType = Type of element such as int or float
+ * NumDims  = Number of dimensions such as 2 or 3
+ * ElemTypeReal = Type of element that allows fractional and large values such as float or double, for use in volume calcs
  *
  * Example:
  * ---
@@ -25,8 +25,8 @@ module rtree;
  *        Instead of using a callback function for returned results, I recommend use efficient pre-sized, grow-only memory
  *        array similar to MFC CArray or STL Vector for returning search query result.
  */
-class RTree(DATATYPE, ELEMTYPE, alias NUMDIMS,
-	ELEMTYPEREAL, alias int MAXNODES = 8, alias int MINNODES = MAXNODES / 2)
+class RTree(DataType, ElemType, alias NumDims,
+	ElemTypeReal, alias int MaxNodes = 8, alias int MinNodes = MaxNodes / 2)
 {
 public:
 
@@ -42,14 +42,14 @@ public:
 	];
 
 	// Unit sphere constant for required number of dimensions
-	enum unitSphereVolume = cast(ELEMTYPEREAL) UnitSphereVolume[NUMDIMS];
+	enum unitSphereVolume = cast(ElemTypeReal) UnitSphereVolume[NumDims];
 
-	alias Callback = bool function(DATATYPE, void*);
+	alias Callback = bool function(DataType, void*);
 
 	this()
 	{
-		static assert(MAXNODES > MINNODES);
-		static assert(MINNODES > 0);
+		static assert(MaxNodes > MinNodes);
+		static assert(MinNodes > 0);
 
 		m_root = AllocNode();
 		m_root.m_level = 0;
@@ -65,11 +65,11 @@ public:
 	///     a_min    = Min of bounding rect
 	///     a_max    = Max of bounding rect
 	///     a_dataId = Positive Id of data.  Maybe zero, but negative numbers not allowed.
-	void insert(ref const ELEMTYPE[NUMDIMS] a_min, ref const ELEMTYPE[NUMDIMS] a_max, ref const(DATATYPE) a_dataId)
+	void insert(ref const ElemType[NumDims] a_min, ref const ElemType[NumDims] a_max, ref const(DataType) a_dataId)
 	{
 		debug
 		{
-			for(int index=0; index<NUMDIMS; ++index)
+			for(int index=0; index<NumDims; ++index)
 			{
 				assert(a_min[index] <= a_max[index]);
 			}
@@ -79,7 +79,7 @@ public:
 		branch.m_data = a_dataId;
 		branch.m_child = null;
 
-		for(int axis=0; axis<NUMDIMS; ++axis)
+		for(int axis=0; axis<NumDims; ++axis)
 		{
 			branch.m_rect.m_min[axis] = a_min[axis];
 			branch.m_rect.m_max[axis] = a_max[axis];
@@ -93,11 +93,11 @@ public:
 	///     a_min = Min of bounding rect
 	///     a_max = Max of bounding rect
 	///     a_dataId = Positive Id of data.  Maybe zero, but negative numbers not allowed.
-	void remove(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, ref const(DATATYPE) a_dataId)
+	void remove(const ElemType[NumDims] a_min, const ElemType[NumDims] a_max, ref const(DataType) a_dataId)
 	{
 		debug
 		{
-			for(int index=0; index<NUMDIMS; ++index)
+			for(int index=0; index<NumDims; ++index)
 			{
 				assert(a_min[index] <= a_max[index]);
 			}
@@ -105,7 +105,7 @@ public:
 
 		Rect rect;
 
-		for(int axis=0; axis<NUMDIMS; ++axis)
+		for(int axis=0; axis<NumDims; ++axis)
 		{
 			rect.m_min[axis] = a_min[axis];
 			rect.m_max[axis] = a_max[axis];
@@ -121,11 +121,11 @@ public:
 	///     a_resultCallback = Callback function to return result.  Callback should return 'true' to continue searching
 	///     a_context = User context to pass as parameter to a_resultCallback
 	/// Returns: Returns the number of entries found
-	int search(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, Callback a_resultCallback, void* a_context)
+	int search(const ElemType[NumDims] a_min, const ElemType[NumDims] a_max, Callback a_resultCallback, void* a_context)
 	{
 		debug
 		{
-			for(int index=0; index<NUMDIMS; ++index)
+			for(int index=0; index<NumDims; ++index)
 			{
 				assert(a_min[index] <= a_max[index]);
 			}
@@ -133,7 +133,7 @@ public:
 
 		Rect rect;
 
-		for(int axis=0; axis<NUMDIMS; ++axis)
+		for(int axis=0; axis<NumDims; ++axis)
 		{
 			rect.m_min[axis] = a_min[axis];
 			rect.m_max[axis] = a_max[axis];
@@ -172,8 +172,8 @@ protected:
 	// Minimal bounding rectangle (n-dimensional)
 	struct Rect
 	{
-		ELEMTYPE[NUMDIMS] m_min;                      ///< Min dimensions of bounding box
-		ELEMTYPE[NUMDIMS] m_max;                      ///< Max dimensions of bounding box
+		ElemType[NumDims] m_min;                      ///< Min dimensions of bounding box
+		ElemType[NumDims] m_max;                      ///< Max dimensions of bounding box
 	}
 
 	// May be data or may be another subtree
@@ -183,7 +183,7 @@ protected:
 	{
 		Rect m_rect;                                  ///< Bounds
 		Node* m_child;                                ///< Child node
-		DATATYPE m_data;                              ///< Data Id
+		DataType m_data;                              ///< Data Id
 	}
 
 	// Node for each branch level
@@ -194,7 +194,7 @@ protected:
 
 		int m_count;                                  ///< Count
 		int m_level;                                  ///< Leaf is zero, others positive
-		Branch[MAXNODES] m_branch;                    ///< Branch
+		Branch[MaxNodes] m_branch;                    ///< Branch
 	}
 
 	// A link list of nodes for reinsertion after a delete operation
@@ -209,17 +209,17 @@ protected:
 	{
 		enum { NOT_TAKEN = -1 } // indicates that position
 
-		int[MAXNODES+1]    m_partition;
+		int[MaxNodes+1]    m_partition;
 		int                m_total;
 		int                m_minFill;
 		int[2]             m_count;
 		Rect[2]            m_cover;
-		ELEMTYPEREAL[2]    m_area;
+		ElemTypeReal[2]    m_area;
 
-		Branch[MAXNODES+1] m_branchBuf;
+		Branch[MaxNodes+1] m_branchBuf;
 		int                m_branchCount;
 		Rect               m_coverSplit;
-		ELEMTYPEREAL       m_coverSplitArea;
+		ElemTypeReal       m_coverSplitArea;
 	}
 
 	Node* AllocNode()
@@ -244,10 +244,10 @@ protected:
 
 	void InitRect(Rect* a_rect)
 	{
-		for(int index = 0; index < NUMDIMS; ++index)
+		for(int index = 0; index < NumDims; ++index)
 		{
-			a_rect.m_min[index] = cast(ELEMTYPE) 0;
-			a_rect.m_max[index] = cast(ELEMTYPE) 0;
+			a_rect.m_min[index] = cast(ElemType) 0;
+			a_rect.m_max[index] = cast(ElemType) 0;
 		}
 	}
 
@@ -315,7 +315,7 @@ protected:
 		assert(a_level >= 0 && a_level <= (*a_root).m_level);
 		debug
 		{
-			for(int index=0; index < NUMDIMS; ++index)
+			for(int index=0; index < NumDims; ++index)
 			{
 				assert(a_branch.m_rect.m_min[index] <= a_branch.m_rect.m_max[index]);
 			}
@@ -368,7 +368,7 @@ protected:
 		assert(a_branch);
 		assert(a_node);
 
-		if(a_node.m_count < MAXNODES)  // Split won't be necessary
+		if(a_node.m_count < MaxNodes)  // Split won't be necessary
 		{
 			a_node.m_branch[a_node.m_count] = *a_branch;
 			++a_node.m_count;
@@ -386,7 +386,7 @@ protected:
 
 	void DisconnectBranch(Node* a_node, int a_index)
 	{
-		assert(a_node && (a_index >= 0) && (a_index < MAXNODES));
+		assert(a_node && (a_index >= 0) && (a_index < MaxNodes));
 		assert(a_node.m_count > 0);
 
 		// Remove element by swapping with the last element to prevent gaps in array
@@ -400,10 +400,10 @@ protected:
 		assert(a_rect && a_node);
 
 		bool firstTime = true;
-		ELEMTYPEREAL increase;
-		ELEMTYPEREAL bestIncr = cast(ELEMTYPEREAL) -1;
-		ELEMTYPEREAL area;
-		ELEMTYPEREAL bestArea;
+		ElemTypeReal increase;
+		ElemTypeReal bestIncr = cast(ElemTypeReal) -1;
+		ElemTypeReal area;
+		ElemTypeReal bestArea;
 		int best;
 		Rect tempRect;
 
@@ -436,7 +436,7 @@ protected:
 
 		Rect newRect;
 
-		for(int index = 0; index < NUMDIMS; ++index)
+		for(int index = 0; index < NumDims; ++index)
 		{
 			import std.algorithm : min, max;
 			newRect.m_min[index] = min(a_rectA.m_min[index], a_rectB.m_min[index]);
@@ -459,7 +459,7 @@ protected:
 		GetBranches(a_node, a_branch, parVars);
 
 		// Find partition
-		ChoosePartition(parVars, MINNODES);
+		ChoosePartition(parVars, MinNodes);
 
 		// Create a new node to hold (about) half of the branches
 		*a_newNode = AllocNode();
@@ -472,54 +472,54 @@ protected:
 		assert((a_node.m_count + (*a_newNode).m_count) == parVars.m_total);
 	}
 
-	ELEMTYPEREAL RectSphericalVolume(Rect* a_rect)
+	ElemTypeReal RectSphericalVolume(Rect* a_rect)
 	{
 		assert(a_rect);
 
-		ELEMTYPEREAL sumOfSquares = cast(ELEMTYPEREAL) 0;
-		ELEMTYPEREAL radius;
+		ElemTypeReal sumOfSquares = cast(ElemTypeReal) 0;
+		ElemTypeReal radius;
 
-		for(int index=0; index < NUMDIMS; ++index)
+		for(int index=0; index < NumDims; ++index)
 		{
-			ELEMTYPEREAL halfExtent = (cast(ELEMTYPEREAL) a_rect.m_max[index] - cast(ELEMTYPEREAL) a_rect.m_min[index]) * 0.5f;
+			ElemTypeReal halfExtent = (cast(ElemTypeReal) a_rect.m_max[index] - cast(ElemTypeReal) a_rect.m_min[index]) * 0.5f;
 			sumOfSquares += halfExtent * halfExtent;
 		}
 
 		import std.math : sqrt;
-		radius = cast(ELEMTYPEREAL) sqrt(sumOfSquares);
+		radius = cast(ElemTypeReal) sqrt(sumOfSquares);
 
 		// Pow maybe slow, so test for common dims like 2,3 and just use x*x, x*x*x.
-		static if(NUMDIMS == 3)
+		static if(NumDims == 3)
 		{
 			return (radius * radius * radius * unitSphereVolume);
 		}
-		else static if(NUMDIMS == 2)
+		else static if(NumDims == 2)
 		{
 			return (radius * radius * unitSphereVolume);
 		}
 		else
 		{
-			return cast(ELEMTYPEREAL) (pow(radius, NUMDIMS) * unitSphereVolume);
+			return cast(ElemTypeReal) (pow(radius, NumDims) * unitSphereVolume);
 		}
 	}
 
-	ELEMTYPEREAL RectVolume(Rect* a_rect)
+	ElemTypeReal RectVolume(Rect* a_rect)
 	{
 		assert(a_rect);
 
-		ELEMTYPEREAL volume = cast(ELEMTYPEREAL) 1;
+		ElemTypeReal volume = cast(ElemTypeReal) 1;
 
-		for(int index=0; index<NUMDIMS; ++index)
+		for(int index=0; index<NumDims; ++index)
 		{
 			volume *= a_rect.m_max[index] - a_rect.m_min[index];
 		}
 
-		assert(volume >= cast(ELEMTYPEREAL) 0);
+		assert(volume >= cast(ElemTypeReal) 0);
 
 		return volume;
 	}
 
-	ELEMTYPEREAL CalcRectVolume(Rect* a_rect)
+	ElemTypeReal CalcRectVolume(Rect* a_rect)
 	{
 		version(RTREE_USE_SPHERICAL_VOLUME)
 		{
@@ -536,19 +536,19 @@ protected:
 		assert(a_node);
 		assert(a_branch);
 
-		assert(a_node.m_count == MAXNODES);
+		assert(a_node.m_count == MaxNodes);
 
 		// Load the branch buffer
-		for(int index=0; index < MAXNODES; ++index)
+		for(int index=0; index < MaxNodes; ++index)
 		{
 			a_parVars.m_branchBuf[index] = a_node.m_branch[index];
 		}
-		a_parVars.m_branchBuf[MAXNODES] = *a_branch;
-		a_parVars.m_branchCount = MAXNODES + 1;
+		a_parVars.m_branchBuf[MaxNodes] = *a_branch;
+		a_parVars.m_branchCount = MaxNodes + 1;
 
 		// Calculate rect containing all in the set
 		a_parVars.m_coverSplit = a_parVars.m_branchBuf[0].m_rect;
-		for(int index=1; index < MAXNODES+1; ++index)
+		for(int index=1; index < MaxNodes+1; ++index)
 		{
 			a_parVars.m_coverSplit = CombineRect(&a_parVars.m_coverSplit, &a_parVars.m_branchBuf[index].m_rect);
 		}
@@ -559,7 +559,7 @@ protected:
 	{
 		assert(a_parVars);
 
-		ELEMTYPEREAL biggestDiff;
+		ElemTypeReal biggestDiff;
 		int group, chosen, betterGroup;
 
 		InitParVars(a_parVars, a_parVars.m_branchCount, a_minFill);
@@ -569,7 +569,7 @@ protected:
 			&& (a_parVars.m_count[0] < (a_parVars.m_total - a_parVars.m_minFill))
 			&& (a_parVars.m_count[1] < (a_parVars.m_total - a_parVars.m_minFill)))
 		{
-			biggestDiff = cast(ELEMTYPEREAL) -1;
+			biggestDiff = cast(ElemTypeReal) -1;
 			for(int index=0; index<a_parVars.m_total; ++index)
 			{
 				if(PartitionVars.NOT_TAKEN == a_parVars.m_partition[index])
@@ -577,9 +577,9 @@ protected:
 					Rect* curRect = &a_parVars.m_branchBuf[index].m_rect;
 					Rect rect0 = CombineRect(curRect, &a_parVars.m_cover[0]);
 					Rect rect1 = CombineRect(curRect, &a_parVars.m_cover[1]);
-					ELEMTYPEREAL growth0 = CalcRectVolume(&rect0) - a_parVars.m_area[0];
-					ELEMTYPEREAL growth1 = CalcRectVolume(&rect1) - a_parVars.m_area[1];
-					ELEMTYPEREAL diff = growth1 - growth0;
+					ElemTypeReal growth0 = CalcRectVolume(&rect0) - a_parVars.m_area[0];
+					ElemTypeReal growth1 = CalcRectVolume(&rect1) - a_parVars.m_area[1];
+					ElemTypeReal diff = growth1 - growth0;
 					if(diff >= 0)
 					{
 						group = 0;
@@ -656,7 +656,7 @@ protected:
 		assert(a_parVars);
 
 		a_parVars.m_count[0] = a_parVars.m_count[1] = 0;
-		a_parVars.m_area[0] = a_parVars.m_area[1] = cast(ELEMTYPEREAL) 0;
+		a_parVars.m_area[0] = a_parVars.m_area[1] = cast(ElemTypeReal) 0;
 		a_parVars.m_total = a_maxRects;
 		a_parVars.m_minFill = a_minFill;
 		for(int index=0; index < a_maxRects; ++index)
@@ -669,8 +669,8 @@ protected:
 	{
 		int seed0 = 0;
 		int seed1 = seed0 + 1;
-		ELEMTYPEREAL worst, waste;
-		ELEMTYPEREAL[MAXNODES+1] area;
+		ElemTypeReal worst, waste;
+		ElemTypeReal[MaxNodes+1] area;
 
 		for(int index=0; index<a_parVars.m_total; ++index)
 		{
@@ -720,7 +720,7 @@ protected:
 		++a_parVars.m_count[a_group];
 	}
 
-	bool RemoveRect(Rect* a_rect, ref const DATATYPE a_id, Node** a_root)
+	bool RemoveRect(Rect* a_rect, ref const DataType a_id, Node** a_root)
 	{
 		assert(a_rect && a_root);
 		assert(*a_root);
@@ -768,7 +768,7 @@ protected:
 		}
 	}
 
-	bool RemoveRectRec(Rect* a_rect, ref const DATATYPE a_id, Node* a_node, ListNode** a_listNode)
+	bool RemoveRectRec(Rect* a_rect, ref const DataType a_id, Node* a_node, ListNode** a_listNode)
 	{
 		assert(a_rect && a_node && a_listNode);
 		assert(a_node.m_level >= 0);
@@ -781,7 +781,7 @@ protected:
 				{
 					if(!RemoveRectRec(a_rect, a_id, a_node.m_branch[index].m_child, a_listNode))
 					{
-						if(a_node.m_branch[index].m_child.m_count >= MINNODES)
+						if(a_node.m_branch[index].m_child.m_count >= MinNodes)
 						{
 							// child removed, just resize parent rect
 							a_node.m_branch[index].m_rect = NodeCover(a_node.m_branch[index].m_child);
@@ -826,7 +826,7 @@ protected:
 	{
 		assert(a_rectA && a_rectB);
 
-		for(int index=0; index < NUMDIMS; ++index)
+		for(int index=0; index < NumDims; ++index)
 		{
 			if (a_rectA.m_min[index] > a_rectB.m_max[index] ||
 				a_rectB.m_min[index] > a_rectA.m_max[index])
@@ -875,7 +875,7 @@ protected:
 			{
 				if(Overlap(a_rect, &a_node.m_branch[index].m_rect))
 				{
-					DATATYPE* id = &a_node.m_branch[index].m_data;
+					DataType* id = &a_node.m_branch[index].m_data;
 					++a_foundCount;
 
 					// NOTE: There are different ways to return results.  Here's where to modify
