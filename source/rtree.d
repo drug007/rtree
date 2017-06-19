@@ -1,21 +1,30 @@
 module rtree;
 
-/// \class RTree
-/// Implementation of RTree, a multidimensional bounding rectangle tree.
-/// Example usage: For a 3-dimensional tree use RTree!(Object, float, 3) myTree;
-///
-/// This is ported to D C++ version by Yariv Barkan (https://github.com/nushoin/RTree)
-///
-/// DATATYPE Referenced data, should be int, void*, obj* etc. no larger than (void*).sizeof and simple type
-/// ELEMTYPE Type of element such as int or float
-/// NUMDIMS Number of dimensions such as 2 or 3
-/// ELEMTYPEREAL Type of element that allows fractional and large values such as float or double, for use in volume calcs
-///
-/// NOTES: Inserting and removing data requires the knowledge of its constant Minimal Bounding Rectangle.
-///        This version uses new/delete for nodes, I recommend using a fixed size allocator for efficiency.
-///        Instead of using a callback function for returned results, I recommend use efficient pre-sized, grow-only memory
-///        array similar to MFC CArray or STL Vector for returning search query result.
-///
+/******************************************************************************
+ * class RTree
+ *
+ * Implementation of $(LINK2 https://en.wikipedia.org/wiki/R-tree, R-Tree), a multidimensional bounding rectangle tree.
+ *
+ * This is ported to D $(LINK2 https://github.com/nushoin/RTree, C++ version by Yariv Barkan).
+ *
+ * Params:
+ * DATATYPE = Referenced data, should be int, void*, obj* etc. no larger than (void*).sizeof and simple type
+ * ELEMTYPE = Type of element such as int or float
+ * NUMDIMS  = Number of dimensions such as 2 or 3
+ * ELEMTYPEREAL = Type of element that allows fractional and large values such as float or double, for use in volume calcs
+ *
+ * Example:
+ * ---
+ *     // a 3-dimensional tree
+ *     alias MyTree = RTree!(StructPtr, float, 3);
+ *     auto my_tree = new MyTree();
+ * ---
+ *
+ * Notes: Inserting and removing data requires the knowledge of its constant Minimal Bounding Rectangle.
+ *        This version uses new/delete for nodes, I recommend using a fixed size allocator for efficiency.
+ *        Instead of using a callback function for returned results, I recommend use efficient pre-sized, grow-only memory
+ *        array similar to MFC CArray or STL Vector for returning search query result.
+ */
 class RTree(DATATYPE, ELEMTYPE, alias NUMDIMS,
 	ELEMTYPEREAL, alias int MAXNODES = 8, alias int MINNODES = MAXNODES / 2)
 {
@@ -32,7 +41,7 @@ public:
 		0.082146f, 0.046622f, 0.025807f, // Dimension  18,19,20
 	];
 
-	/// Unit sphere constant for required number of dimensions
+	// Unit sphere constant for required number of dimensions
 	enum unitSphereVolume = cast(ELEMTYPEREAL) UnitSphereVolume[NUMDIMS];
 
 	alias Callback = bool function(DATATYPE, void*);
@@ -52,9 +61,10 @@ public:
 	}
 
 	/// Insert entry
-	/// \param a_min Min of bounding rect
-	/// \param a_max Max of bounding rect
-	/// \param a_dataId Positive Id of data.  Maybe zero, but negative numbers not allowed.
+	/// Params:
+	///     a_min    = Min of bounding rect
+	///     a_max    = Max of bounding rect
+	///     a_dataId = Positive Id of data.  Maybe zero, but negative numbers not allowed.
 	void insert(ref const ELEMTYPE[NUMDIMS] a_min, ref const ELEMTYPE[NUMDIMS] a_max, ref const(DATATYPE) a_dataId)
 	{
 		debug
@@ -79,9 +89,10 @@ public:
 	}
 
 	/// Remove entry
-	/// \param a_min Min of bounding rect
-	/// \param a_max Max of bounding rect
-	/// \param a_dataId Positive Id of data.  Maybe zero, but negative numbers not allowed.
+	/// Params:
+	///     a_min = Min of bounding rect
+	///     a_max = Max of bounding rect
+	///     a_dataId = Positive Id of data.  Maybe zero, but negative numbers not allowed.
 	void remove(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, ref const(DATATYPE) a_dataId)
 	{
 		debug
@@ -103,13 +114,13 @@ public:
 		RemoveRect(&rect, a_dataId, &m_root);
 	}
 
-	/// Find all within search rectangle
-	/// \param a_min Min of search bounding rect
-	/// \param a_max Max of search bounding rect
-	/// \param a_searchResult Search result array.  Caller should set grow size. Function will reset, not append to array.
-	/// \param a_resultCallback Callback function to return result.  Callback should return 'true' to continue searching
-	/// \param a_context User context to pass as parameter to a_resultCallback
-	/// \return Returns the number of entries found
+	/// Find all within query rectangle
+	/// Params:
+	///     a_min = Min of query bounding rect
+	///     a_max = Max of query bounding rect
+	///     a_resultCallback = Callback function to return result.  Callback should return 'true' to continue searching
+	///     a_context = User context to pass as parameter to a_resultCallback
+	/// Returns: Returns the number of entries found
 	int search(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, Callback a_resultCallback, void* a_context)
 	{
 		debug
@@ -158,16 +169,16 @@ public:
 
 protected:
 
-	/// Minimal bounding rectangle (n-dimensional)
+	// Minimal bounding rectangle (n-dimensional)
 	struct Rect
 	{
 		ELEMTYPE[NUMDIMS] m_min;                      ///< Min dimensions of bounding box
 		ELEMTYPE[NUMDIMS] m_max;                      ///< Max dimensions of bounding box
 	}
 
-	/// May be data or may be another subtree
-	/// The parents level determines this.
-	/// If the parents level is 0, then this is data
+	// May be data or may be another subtree
+	// The parents level determines this.
+	// If the parents level is 0, then this is data
 	struct Branch
 	{
 		Rect m_rect;                                  ///< Bounds
@@ -175,7 +186,7 @@ protected:
 		DATATYPE m_data;                              ///< Data Id
 	}
 
-	/// Node for each branch level
+	// Node for each branch level
 	struct Node
 	{
 		bool IsInternalNode()                         { return (m_level > 0); } // Not a leaf, but a internal node
@@ -186,14 +197,14 @@ protected:
 		Branch[MAXNODES] m_branch;                    ///< Branch
 	}
 
-	/// A link list of nodes for reinsertion after a delete operation
+	// A link list of nodes for reinsertion after a delete operation
 	struct ListNode
 	{
 		ListNode* m_next;                             ///< Next in list
 		Node* m_node;                                 ///< Node
 	}
 
-	/// Variables for finding a split partition
+	// Variables for finding a split partition
 	struct PartitionVars
 	{
 		enum { NOT_TAKEN = -1 } // indicates that position
@@ -917,5 +928,6 @@ protected:
 		}
 	}
 
-	Node* m_root;                                    ///< Root of tree
+	// Root of tree
+	Node* m_root;
 }
