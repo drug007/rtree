@@ -147,19 +147,14 @@ public:
 		m_root.m_level = 0;
 	}
 
-	//  /// Count the data elements in this container.  This is slow as no internal counter is maintained.
-	//  int Count();
+	/// Count the data elements in this container.  This is slow as no internal counter is maintained.
+	int Count()
+	{
+		int count = 0;
+		CountRec(m_root, count);
 
-	//  /// Load tree contents from file
-	//  bool Load(const char* a_fileName);
-	//  /// Load tree contents from stream
-	//  bool Load(RTFileStream& a_stream);
-
-
-	//  /// Save tree contents to file
-	//  bool Save(const char* a_fileName);
-	//  /// Save tree contents to stream
-	//  bool Save(RTFileStream& a_stream);
+		return count;
+	}
 
 protected:
 
@@ -906,10 +901,21 @@ protected:
 	{
 		RemoveAllRec(m_root);
 	}
-//  void CountRec(Node* a_node, int& a_count);
 
-//  bool SaveRec(Node* a_node, RTFileStream& a_stream);
-//  bool LoadRec(Node* a_node, RTFileStream& a_stream);
+	void CountRec(Node* a_node, ref int a_count)
+	{
+		if(a_node.IsInternalNode())  // not a leaf node
+		{
+			for(int index = 0; index < a_node.m_count; ++index)
+			{
+				CountRec(a_node.m_branch[index].m_child, a_count);
+			}
+		}
+		else // A leaf node
+		{
+			a_count += a_node.m_count;
+		}
+	}
 
 	Node* m_root;                                    ///< Root of tree
 }
