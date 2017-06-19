@@ -333,7 +333,7 @@ protected:
 	{
 		ELEMTYPE[NUMDIMS] m_min;                      ///< Min dimensions of bounding box
 		ELEMTYPE[NUMDIMS] m_max;                      ///< Max dimensions of bounding box
-	};
+	}
 
 	/// May be data or may be another subtree
 	/// The parents level determines this.
@@ -343,7 +343,7 @@ protected:
 		Rect m_rect;                                  ///< Bounds
 		Node* m_child;                                ///< Child node
 		DATATYPE m_data;                              ///< Data Id
-	};
+	}
 
 	/// Node for each branch level
 	struct Node
@@ -457,8 +457,14 @@ protected:
 		else
 		{
 			// Should never occur
-			assert(0);
-			return false;
+			debug
+			{
+				assert(0);
+			}
+			else
+			{
+				return false;
+			}
 		}
 	}
 
@@ -784,6 +790,7 @@ protected:
 		assert((a_parVars.m_count[0] >= a_parVars.m_minFill) &&
 			(a_parVars.m_count[1] >= a_parVars.m_minFill));
 	}
+
 	void LoadNodes(Node* a_nodeA, Node* a_nodeB, PartitionVars* a_parVars)
 	{
 		assert(a_nodeA);
@@ -972,7 +979,6 @@ protected:
 	void FreeListNode(ListNode* a_listNode)
 	{
 		destroy(a_listNode);
-		a_listNode = null;
 	}
 
 	bool Overlap(Rect* a_rectA, Rect* a_rectB)
@@ -1071,5 +1077,5 @@ protected:
 //  bool LoadRec(Node* a_node, RTFileStream& a_stream);
 
 	Node* m_root;                                    ///< Root of tree
-	ELEMTYPEREAL m_unitSphereVolume;                 ///< Unit sphere constant for required number of dimensions
+	const ELEMTYPEREAL m_unitSphereVolume;                 ///< Unit sphere constant for required number of dimensions
 }
