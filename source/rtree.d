@@ -4,7 +4,7 @@ module rtree;
 /// Implementation of RTree, a multidimensional bounding rectangle tree.
 /// Example usage: For a 3-dimensional tree use RTree!(Object, float, 3) myTree;
 ///
-/// This is ported to D C++ version by Greg Douglas at Auran (http://www.auran.com)
+/// This is ported to D C++ version by Yariv Barkan (https://github.com/nushoin/RTree)
 ///
 /// DATATYPE Referenced data, should be int, void*, obj* etc. no larger than (void*).sizeof and simple type
 /// ELEMTYPE Type of element such as int or float
@@ -13,7 +13,7 @@ module rtree;
 ///
 /// NOTES: Inserting and removing data requires the knowledge of its constant Minimal Bounding Rectangle.
 ///        This version uses new/delete for nodes, I recommend using a fixed size allocator for efficiency.
-///        Instead of using a callback function for returned results, I recommend and efficient pre-sized, grow-only memory
+///        Instead of using a callback function for returned results, I recommend use efficient pre-sized, grow-only memory
 ///        array similar to MFC CArray or STL Vector for returning search query result.
 ///
 class RTree(DATATYPE, ELEMTYPE, alias NUMDIMS,
@@ -55,7 +55,7 @@ public:
 	/// \param a_min Min of bounding rect
 	/// \param a_max Max of bounding rect
 	/// \param a_dataId Positive Id of data.  Maybe zero, but negative numbers not allowed.
-	void Insert(ref const ELEMTYPE[NUMDIMS] a_min, ref const ELEMTYPE[NUMDIMS] a_max, ref const(DATATYPE) a_dataId)
+	void insert(ref const ELEMTYPE[NUMDIMS] a_min, ref const ELEMTYPE[NUMDIMS] a_max, ref const(DATATYPE) a_dataId)
 	{
 		debug
 		{
@@ -82,7 +82,7 @@ public:
 	/// \param a_min Min of bounding rect
 	/// \param a_max Max of bounding rect
 	/// \param a_dataId Positive Id of data.  Maybe zero, but negative numbers not allowed.
-	void Remove(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, ref const(DATATYPE) a_dataId)
+	void remove(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, ref const(DATATYPE) a_dataId)
 	{
 		debug
 		{
@@ -110,7 +110,7 @@ public:
 	/// \param a_resultCallback Callback function to return result.  Callback should return 'true' to continue searching
 	/// \param a_context User context to pass as parameter to a_resultCallback
 	/// \return Returns the number of entries found
-	int Search(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, Callback a_resultCallback, void* a_context)
+	int search(const ELEMTYPE[NUMDIMS] a_min, const ELEMTYPE[NUMDIMS] a_max, Callback a_resultCallback, void* a_context)
 	{
 		debug
 		{
@@ -138,7 +138,7 @@ public:
 
 
 	/// Remove all entries from tree
-	void RemoveAll()
+	void removeAll()
 	{
 		// Delete all existing nodes
 		Reset();
@@ -148,7 +148,7 @@ public:
 	}
 
 	/// Count the data elements in this container.  This is slow as no internal counter is maintained.
-	int Count()
+	int count()
 	{
 		int count = 0;
 		CountRec(m_root, count);

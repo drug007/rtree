@@ -1,7 +1,7 @@
 import rtree;
 
 //
-// This is a direct port of the C++ version of the RTree test program.
+// This is a direct port to D of the C++ version of the RTree test program.
 //
 
 alias ValueType = int;
@@ -53,10 +53,10 @@ int main()
 
 	for(i=0; i<nrects; i++)
 	{
-		tree.Insert(rects[i].min, rects[i].max, i); // Note, all values including zero are fine in this version
+		tree.insert(rects[i].min, rects[i].max, i); // Note, all values including zero are fine in this version
 	}
 
-	nhits = tree.Search(search_rect.min, search_rect.max, &MySearchCallback, null);
+	nhits = tree.search(search_rect.min, search_rect.max, &MySearchCallback, null);
 
 	writeln("Search resulted in ", nhits, " hits");
 
