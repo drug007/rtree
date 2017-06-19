@@ -1,0 +1,5 @@
+name "rtree"
+description "RTree implementation."
+authors "drug007"
+copyright "Copyright © 2017, drug"
+license "BSL"
