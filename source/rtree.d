@@ -410,7 +410,7 @@ protected:
 		}
 	}
 
-	bool InsertRectRec(ref const Branch a_branch, Node* a_node, Node** a_newNode, int a_level)
+	bool InsertRectRec(ref Branch a_branch, Node* a_node, Node** a_newNode, int a_level)
 	{
 		assert(a_node && a_newNode);
 		assert(a_level >= 0 && a_level <= a_node.m_level);
@@ -468,7 +468,7 @@ protected:
 		}
 	}
 
-	bool InsertRect(ref const(Branch) a_branch, Node** a_root, int a_level)
+	bool InsertRect(ref Branch a_branch, Node** a_root, int a_level)
 	{
 		assert(a_root);
 		assert(a_level >= 0 && a_level <= (*a_root).m_level);
@@ -522,14 +522,14 @@ protected:
 		return rect;
 	}
 
-	bool AddBranch(const Branch* a_branch, Node* a_node, Node** a_newNode)
+	bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode)
 	{
 		assert(a_branch);
 		assert(a_node);
 
 		if(a_node.m_count < MAXNODES)  // Split won't be necessary
 		{
-			a_node.m_branch[a_node.m_count] = cast()(*a_branch); // TODO my hack
+			a_node.m_branch[a_node.m_count] = *a_branch;
 			++a_node.m_count;
 
 			return false;
@@ -605,7 +605,7 @@ protected:
 		return newRect;
 	}
 
-	void SplitNode(Node* a_node, const Branch* a_branch, Node** a_newNode)
+	void SplitNode(Node* a_node, Branch* a_branch, Node** a_newNode)
 	{
 		assert(a_node);
 		assert(a_branch);
@@ -690,7 +690,7 @@ protected:
 		}
 	}
 
-	void GetBranches(Node* a_node, const Branch* a_branch, PartitionVars* a_parVars)
+	void GetBranches(Node* a_node, Branch* a_branch, PartitionVars* a_parVars)
 	{
 		assert(a_node);
 		assert(a_branch);
@@ -702,7 +702,7 @@ protected:
 		{
 			a_parVars.m_branchBuf[index] = a_node.m_branch[index];
 		}
-		a_parVars.m_branchBuf[MAXNODES] = cast() *a_branch; // TODO my hack
+		a_parVars.m_branchBuf[MAXNODES] = *a_branch;
 		a_parVars.m_branchCount = MAXNODES + 1;
 
 		// Calculate rect containing all in the set
