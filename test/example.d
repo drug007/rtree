@@ -1,3 +1,11 @@
+#!/usr/bin/env dub
+/+ dub.sdl:
+    name        "example"
+    targetType  "executable"
+
+    dependency "rtree" version="*" path=".."
++/
+
 import rtree;
 
 //
@@ -33,7 +41,7 @@ Rect[] rects =
 Rect search_rect = Rect(6, 4, 10, 6); // search will find above rects that this one overlaps
 
 
-bool MySearchCallback(ValueType id, void* arg)
+bool MySearchCallback(ValueType id)
 {
 	import std.stdio : writeln;
 	writeln("Hit data rect ",  id);
@@ -56,7 +64,8 @@ int main()
 		tree.insert(rects[i].min, rects[i].max, i); // Note, all values including zero are fine in this version
 	}
 
-	nhits = tree.search(search_rect.min, search_rect.max, &MySearchCallback, null);
+	import std.functional : toDelegate;
+	nhits = tree.search(search_rect.min, search_rect.max, toDelegate(&MySearchCallback));
 
 	writeln("Search resulted in ", nhits, " hits");
 

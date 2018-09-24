@@ -47,7 +47,7 @@ public:
 	static assert(is(ElemTypeReal : float));
 	static assert(NumDims >= 2 && NumDims <= 3);
 
-	alias Callback = bool function(DataType, void*);
+	alias Callback = bool delegate(DataType);
 
 	this()
 	{
@@ -121,10 +121,9 @@ public:
 	/// Params:
 	///     a_min = Min of query bounding rect
 	///     a_max = Max of query bounding rect
-	///     a_resultCallback = Callback function to return result.  Callback should return 'true' to continue searching
-	///     a_context = User context to pass as parameter to a_resultCallback
+	///     a_result_callback = Delegate to return result.  Callback should return 'true' to continue searching
 	/// Returns: Returns the number of entries found
-	int search(const ElemType[NumDims] a_min, const ElemType[NumDims] a_max, Callback a_resultCallback, void* a_context)
+	int search(const ElemType[NumDims] a_min, const ElemType[NumDims] a_max, Callback a_result_callback)
 	{
 		debug
 		{
@@ -145,7 +144,7 @@ public:
 		// NOTE: May want to return search result another way, perhaps returning the number of found elements here.
 
 		int foundCount = 0;
-		Search(m_root, &rect, foundCount, a_resultCallback, a_context);
+		Search(m_root, &rect, foundCount, a_result_callback);
 
 		return foundCount;
 	}
@@ -850,7 +849,7 @@ protected:
 		*a_listNode = newListNode;
 	}
 
-	bool Search(Node* a_node, Rect* a_rect, ref int a_foundCount, Callback a_resultCallback, void* a_context)
+	bool Search(Node* a_node, Rect* a_rect, ref int a_foundCount, Callback a_result_callback)
 	{
 		assert(a_node);
 		assert(a_node.m_level >= 0);
@@ -863,7 +862,7 @@ protected:
 			{
 				if(Overlap(a_rect, &a_node.m_branch[index].m_rect))
 				{
-					if(!Search(a_node.m_branch[index].m_child, a_rect, a_foundCount, a_resultCallback, a_context))
+					if(!Search(a_node.m_branch[index].m_child, a_rect, a_foundCount, a_result_callback))
 					{
 						// The callback indicated to stop searching
 						return false;
@@ -882,9 +881,9 @@ protected:
 					++a_foundCount;
 
 					// NOTE: There are different ways to return results.  Here's where to modify
-					if(a_resultCallback)
+					if(a_result_callback)
 					{
-						if(!a_resultCallback(*id, a_context))
+						if(!a_result_callback(*id))
 						{
 							return false; // Don't continue searching
 						}
