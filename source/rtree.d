@@ -30,6 +30,8 @@ class RTree(DataType, ElemType, alias NumDims,
 {
 public:
 
+	import std.container.array : Array;
+
 	// Precomputed volumes of the unit spheres for the first few dimensions
 	enum float[] UnitSphereVolume = [
 		0.000000f, 2.000000f, 3.141593f, // Dimension  0,1,2
@@ -46,8 +48,6 @@ public:
 
 	static assert(is(ElemTypeReal : float));
 	static assert(NumDims >= 2 && NumDims <= 3);
-
-	alias Callback = bool delegate(DataType);
 
 	this()
 	{
@@ -121,9 +121,8 @@ public:
 	/// Params:
 	///     a_min = Min of query bounding rect
 	///     a_max = Max of query bounding rect
-	///     a_result_callback = Delegate to return result.  Callback should return 'true' to continue searching
-	/// Returns: Returns the number of entries found
-	int search(const ElemType[NumDims] a_min, const ElemType[NumDims] a_max, Callback a_result_callback)
+	/// Returns: Returns the array of entries found
+	Array!DataType search(const ElemType[NumDims] a_min, const ElemType[NumDims] a_max)
 	{
 		debug
 		{
@@ -143,10 +142,10 @@ public:
 
 		// NOTE: May want to return search result another way, perhaps returning the number of found elements here.
 
-		int foundCount = 0;
-		Search(m_root, &rect, foundCount, a_result_callback);
+		Array!DataType result;
+		Search(m_root, &rect, result);
 
-		return foundCount;
+		return result;
 	}
 
 
@@ -849,7 +848,7 @@ protected:
 		*a_listNode = newListNode;
 	}
 
-	bool Search(Node* a_node, Rect* a_rect, ref int a_foundCount, Callback a_result_callback)
+	bool Search(Node* a_node, Rect* a_rect, ref Array!DataType result)
 	{
 		assert(a_node);
 		assert(a_node.m_level >= 0);
@@ -862,11 +861,7 @@ protected:
 			{
 				if(Overlap(a_rect, &a_node.m_branch[index].m_rect))
 				{
-					if(!Search(a_node.m_branch[index].m_child, a_rect, a_foundCount, a_result_callback))
-					{
-						// The callback indicated to stop searching
-						return false;
-					}
+					Search(a_node.m_branch[index].m_child, a_rect, result);
 				}
 			}
 		}
@@ -877,17 +872,7 @@ protected:
 			{
 				if(Overlap(a_rect, &a_node.m_branch[index].m_rect))
 				{
-					DataType* id = &a_node.m_branch[index].m_data;
-					++a_foundCount;
-
-					// NOTE: There are different ways to return results.  Here's where to modify
-					if(a_result_callback)
-					{
-						if(!a_result_callback(*id))
-						{
-							return false; // Don't continue searching
-						}
-					}
+					result ~= a_node.m_branch[index].m_data;
 				}
 			}
 		}

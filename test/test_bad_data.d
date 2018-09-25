@@ -1,6 +1,10 @@
-//
-// TestBadData.d
-//
+#!/usr/bin/env dub
+/+ dub.sdl:
+    name        "test_bad_data"
+    targetType  "executable"
+
+    dependency "rtree" version="*" path=".."
++/
 
 import rtree;
 
@@ -22,15 +26,6 @@ struct Rect
 	CoordType[2] min;
 	CoordType[2] max;
 }
-
-
-bool MySearchCallback(ValueType id, void* arg)
-{
-	import std.stdio : writeln;
-	writeln("Hit data rect ", id);
-	return true; // keep going
-}
-
 
 int main(string[] args)
 {
@@ -58,19 +53,20 @@ int main(string[] args)
 	alias MyTree = RTree!(ValueType, CoordType, 2, float);
 	auto tree = new MyTree();
 
-	int i, nhits;
+	int i;
 	writeln("number of rectangles is ", rectVector.length);
 
 	for(i=0; i<rectVector.length(); i++)
-  {
+	{
 		writeln(i, ": ", rectVector[i]);
-    tree.Insert(rectVector[i].min, rectVector[i].max, i); // Note, all values including zero are fine in this version
-  }
+		tree.insert(rectVector[i].min, rectVector[i].max, i); // Note, all values including zero are fine in this version
+	}
 
 	auto search_rect = Rect(6, 4, 10, 6);
-	nhits = tree.Search(search_rect.min, search_rect.max, &MySearchCallback, null);
+	auto result = tree.search(search_rect.min, search_rect.max);
 
-	writeln("Search resulted in ", nhits, " hits");
+	writeln("Search resulted in ", result.length, " hits");
+	writeln("Hit data rect ", result[]);
 
 	//// Iterator test
 	//int itIndex = 0;

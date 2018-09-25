@@ -65,9 +65,9 @@ int main()
 	}
 
 	import std.functional : toDelegate;
-	nhits = tree.search(search_rect.min, search_rect.max, toDelegate(&MySearchCallback));
+	auto result = tree.search(search_rect.min, search_rect.max);
 
-	writeln("Search resulted in ", nhits, " hits");
+	writeln("Search resulted in ", result[]);
 
 	// Iterator test
 	//int itIndex = 0;
