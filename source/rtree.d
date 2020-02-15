@@ -48,6 +48,7 @@ public:
 
 	static assert(is(ElemTypeReal : float));
 	static assert(NumDims >= 2 && NumDims <= 3);
+	static assert(DataType.sizeof <= (void*).sizeof, "DataType should be no larger than (void*).sizeof");
 
 	this()
 	{
@@ -68,7 +69,7 @@ public:
 	///     a_min    = Min of bounding rect
 	///     a_max    = Max of bounding rect
 	///     a_dataId = Positive Id of data.  Maybe zero, but negative numbers not allowed.
-	void insert()(auto ref const ElemType[NumDims] a_min, auto ref const ElemType[NumDims] a_max, auto ref const(DataType) a_dataId)
+	void insert()(auto ref const ElemType[NumDims] a_min, auto ref const ElemType[NumDims] a_max, DataType a_dataId)
 	{
 		debug
 		{
@@ -96,7 +97,7 @@ public:
 	///     a_min = Min of bounding rect
 	///     a_max = Max of bounding rect
 	///     a_dataId = Positive Id of data.  Maybe zero, but negative numbers not allowed.
-	void remove(const ElemType[NumDims] a_min, const ElemType[NumDims] a_max, ref const(DataType) a_dataId)
+	void remove(const ElemType[NumDims] a_min, const ElemType[NumDims] a_max, DataType a_dataId)
 	{
 		debug
 		{
