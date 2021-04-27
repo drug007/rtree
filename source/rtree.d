@@ -25,7 +25,7 @@ module rtree;
  *        Instead of using a callback function for returned results, I recommend use efficient pre-sized, grow-only memory
  *        array similar to MFC CArray or STL Vector for returning search query result.
  */
-class RTree(DataType, ElemType, alias NumDims,
+struct RTree(DataType, ElemType, alias NumDims,
 	ElemTypeReal, alias int MaxNodes = 8, alias int MinNodes = MaxNodes / 2)
 {
 public:
@@ -49,15 +49,19 @@ public:
 	static assert(is(ElemTypeReal : float));
 	static assert(NumDims >= 2 && NumDims <= 3);
 	static assert(DataType.sizeof <= (void*).sizeof, "DataType should be no larger than (void*).sizeof");
+	static assert(MaxNodes > MinNodes);
+	static assert(MinNodes > 0);
 
-	this()
+	static make()
 	{
-		static assert(MaxNodes > MinNodes);
-		static assert(MinNodes > 0);
-
-		m_root = AllocNode();
-		m_root.m_level = 0;
+		auto instance = typeof(this)(null);
+		instance.m_root = instance.AllocNode();
+		instance.m_root.m_level = 0;
+		return instance;
 	}
+
+	@disable
+	this();
 
 	~this()
 	{
@@ -169,7 +173,12 @@ public:
 		return count;
 	}
 
-protected:
+private:
+
+	this(Node* ptr)
+	{
+		m_root = ptr;
+	}
 
 	// Minimal bounding rectangle (n-dimensional)
 	struct Rect
