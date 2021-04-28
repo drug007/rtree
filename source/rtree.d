@@ -8,6 +8,7 @@ module rtree;
  * This is ported to D $(LINK2 https://github.com/nushoin/RTree, C++ version by Yariv Barkan).
  *
  * Params:
+ * Allocator = allocator to allocate memory
  * DataType = Referenced data, should be int, void*, obj* etc. no larger than (void*).sizeof and simple type
  * ElemType = Type of element such as int or float
  * NumDims  = Number of dimensions such as 2 or 3
@@ -16,7 +17,7 @@ module rtree;
  * Example:
  * ---
  *     // a 3-dimensional tree
- *     alias MyTree = RTree!(StructPtr, float, 3);
+ *     alias MyTree = RTree!(MAllocator, StructPtr, float, 3);
  *     auto my_tree = new MyTree();
  * ---
  *
@@ -25,12 +26,13 @@ module rtree;
  *        Instead of using a callback function for returned results, I recommend use efficient pre-sized, grow-only memory
  *        array similar to MFC CArray or STL Vector for returning search query result.
  */
-class RTree(DataType, ElemType, alias NumDims,
+struct RTree(Allocator, DataType, ElemType, alias NumDims,
 	ElemTypeReal, alias int MaxNodes = 8, alias int MinNodes = MaxNodes / 2)
 {
 public:
 
 	import std.container.array : Array;
+	import std.traits : hasMember, isCopyable;
 
 	// Precomputed volumes of the unit spheres for the first few dimensions
 	enum float[] UnitSphereVolume = [
@@ -49,15 +51,37 @@ public:
 	static assert(is(ElemTypeReal : float));
 	static assert(NumDims >= 2 && NumDims <= 3);
 	static assert(DataType.sizeof <= (void*).sizeof, "DataType should be no larger than (void*).sizeof");
+	static assert(MaxNodes > MinNodes);
+	static assert(MinNodes > 0);
 
-	this()
+	static if (hasMember!(Allocator, "instance"))
 	{
-		static assert(MaxNodes > MinNodes);
-		static assert(MinNodes > 0);
-
-		m_root = AllocNode();
-		m_root.m_level = 0;
+		static make()
+		{
+			auto instance = typeof(this)(null);
+			instance.m_root = instance.AllocNode();
+			instance.m_root.m_level = 0;
+			return instance;
+		}
 	}
+	else static if (isCopyable!Allocator)
+	{
+		private Allocator _allocator;
+
+		static make(Allocator a)
+		{
+			auto instance = typeof(this)(null);
+			instance.m_root = instance.AllocNode();
+			instance.m_root.m_level = 0;
+			instance._allocator = a;
+			return instance;
+		}
+	}
+	else
+		static assert(0, "Unsupported type of allocator!");
+
+	@disable
+	this();
 
 	~this()
 	{
@@ -169,7 +193,12 @@ public:
 		return count;
 	}
 
-protected:
+private:
+
+	this(Node* ptr)
+	{
+		m_root = ptr;
+	}
 
 	// Minimal bounding rectangle (n-dimensional)
 	struct Rect
@@ -226,9 +255,14 @@ protected:
 
 	Node* AllocNode()
 	{
-		auto newNode = new Node;
-		InitNode(newNode);
-		return newNode;
+		import core.lifetime : emplace;
+		static if (hasMember!(Allocator, "instance"))
+			auto ptr = Allocator.instance.allocate(Node.sizeof);
+		else
+			auto ptr = _allocator.allocate(Node.sizeof);
+		auto n = emplace!Node(ptr);
+		InitNode(n);
+		return n;
 	}
 
 	void FreeNode(Node* a_node)
@@ -365,7 +399,7 @@ protected:
 		return rect;
 	}
 
-	bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode)
+	bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode) @nogc
 	{
 		assert(a_branch);
 		assert(a_node);
@@ -816,12 +850,21 @@ protected:
 
 	ListNode* AllocListNode()
 	{
-		return new ListNode;
+		import core.lifetime : emplace;
+		static if (hasMember!(Allocator, "instance"))
+			auto ptr = Allocator.instance.allocate(ListNode.sizeof);
+		else
+			auto ptr = _allocator.allocate(ListNode.sizeof);
+		return emplace!ListNode(ptr);
 	}
 
 	void FreeListNode(ListNode* a_listNode)
 	{
-		destroy(a_listNode);
+		auto memSlice = () @trusted { return (cast(void*) a_listNode)[0..a_listNode.sizeof]; }();
+		static if (hasMember!(Allocator, "instance"))
+			() @trusted { Allocator.instance.deallocate(memSlice); }();
+		else
+            () @trusted { _allocator.deallocate(memSlice); }();
 	}
 
 	bool Overlap(Rect* a_rectA, Rect* a_rectB)
