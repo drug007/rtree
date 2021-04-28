@@ -1,0 +1,10 @@
+ChangeLog:
+
+2021-04-28  drug007 <drug2004@bk.ru>
+
+	* Enable GitHub Actions
+	* RTree supports std.experimental.allocator
+
+2021-04-27  drug007 <drug2004@bk.ru>
+
+	* RTree is a structure now
