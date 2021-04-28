@@ -399,50 +399,39 @@ private:
 
 	import std.experimental.allocator.gc_allocator : GCAllocator;
 
-	static if (is(Allocator == GCAllocator))
+	static if (isNoGCAllocator!Allocator)
 	{
-		bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode)
+		bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode) @nogc
 		{
-			assert(a_branch);
-			assert(a_node);
-
-			if(a_node.m_count < MaxNodes)  // Split won't be necessary
-			{
-				a_node.m_branch[a_node.m_count] = *a_branch;
-				++a_node.m_count;
-
-				return false;
-			}
-			else
-			{
-				assert(a_newNode);
-
-				SplitNode(a_node, a_branch, a_newNode);
-				return true;
-			}
+			return AddBranchImpl(a_branch, a_node, a_newNode);
 		}
 	}
 	else
 	{
-		bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode) @nogc
+		bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode)
 		{
-			assert(a_branch);
-			assert(a_node);
+			return AddBranchImpl(a_branch, a_node, a_newNode);
+		}
+	}
 
-			if(a_node.m_count < MaxNodes)  // Split won't be necessary
-			{
-				a_node.m_branch[a_node.m_count] = *a_branch;
-				++a_node.m_count;
+	private bool AddBranchImpl(Branch* a_branch, Node* a_node, Node** a_newNode)
+	{
+		assert(a_branch);
+		assert(a_node);
 
-				return false;
-			}
-			else
-			{
-				assert(a_newNode);
+		if(a_node.m_count < MaxNodes)  // Split won't be necessary
+		{
+			a_node.m_branch[a_node.m_count] = *a_branch;
+			++a_node.m_count;
 
-				SplitNode(a_node, a_branch, a_newNode);
-				return true;
-			}
+			return false;
+		}
+		else
+		{
+			assert(a_newNode);
+
+			SplitNode(a_node, a_branch, a_newNode);
+			return true;
 		}
 	}
 
@@ -874,7 +863,7 @@ private:
 		}
 	}
 
-	ListNode* AllocListNode() @safe
+	ListNode* AllocListNode() @trusted
 	{
 		import std.experimental.allocator : make;
 
@@ -884,14 +873,14 @@ private:
 			return _allocator.make!ListNode;
 	}
 
-	void FreeListNode(ListNode* a_listNode) @safe
+	void FreeListNode(ListNode* a_listNode) @trusted
 	{
 		import std.experimental.allocator : dispose;
 
 		static if (hasMember!(Allocator, "instance"))
-			() @trusted { Allocator.instance.dispose(a_listNode); }();
+			Allocator.instance.dispose(a_listNode);
 		else
-            () @trusted { _allocator.dispose(a_listNode); }();
+            _allocator.dispose(a_listNode);
 	}
 
 	bool Overlap(Rect* a_rectA, Rect* a_rectB)
@@ -988,4 +977,37 @@ private:
 
 	// Root of tree
 	Node* m_root;
+}
+
+template isNoGCAllocator(A)
+{
+	auto testCompile()
+	{
+		import std.experimental.allocator: make, dispose;
+		import std.traits: hasMember;
+
+		static if(hasMember!(A, "instance"))
+			alias allocator = A.instance;
+		else
+			A allocator;
+
+		auto m1 = allocator.allocate(8);
+		allocator.deallocate(m1[]);
+		auto m2 = allocator.make!int;
+		allocator.dispose(m2);
+	}
+	enum isAllocator = __traits(compiles, testCompile());
+	enum isNoGCAllocator = isAllocator && __traits(compiles, () @nogc { testCompile(); }() );
+}
+
+unittest
+{
+	import std.experimental.allocator.mallocator;
+	static assert(isNoGCAllocator!Mallocator);
+}
+
+unittest
+{
+	import std.experimental.allocator.gc_allocator;
+	static assert(!isNoGCAllocator!GCAllocator);
 }
