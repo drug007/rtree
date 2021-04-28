@@ -44,6 +44,7 @@ jobs:
 
     - name: 'Run & Test'
       run: |
+        dub test
         cd test
         dub --single example.d
         dub --single test_bad_data.d -- baddata.txt

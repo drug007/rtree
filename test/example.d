@@ -49,13 +49,8 @@ bool MySearchCallback(ValueType id)
 }
 
 
-int main() @nogc
+int test(Tree)(ref Tree tree)
 {
-	import std.experimental.allocator.mallocator : Mallocator;
-
-	alias MyTree = RTree!(Mallocator, ValueType, int, 2, float);
-	auto tree = MyTree.make();
-
 	int i, nhits;
 	auto nrects = rects.length;
 	import std.stdio : printf;
@@ -119,4 +114,29 @@ int main() @nogc
 	// it[1] 1
 	// it[2] 2
 	// it[3] 3
+}
+
+int main()
+{
+	() {
+		import std.experimental.allocator.gc_allocator : GCAllocator;
+		auto tree = RTree!(GCAllocator, ValueType, int, 2, float).make();
+		test(tree);
+	} ();
+
+	() @nogc {
+		import std.experimental.allocator.mallocator : Mallocator;
+		auto tree = RTree!(Mallocator, ValueType, int, 2, float).make();
+		test(tree);
+	} ();
+
+	() @nogc {
+		import std.experimental.allocator.building_blocks.region;
+		alias R = InSituRegion!(1 * 1024, 16);
+		R r;
+		auto tree = RTree!(R, ValueType, int, 2, float).make(r);
+		test(tree);
+	} ();
+	
+	return 0;
 }
