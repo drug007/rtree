@@ -49,15 +49,17 @@ bool MySearchCallback(ValueType id)
 }
 
 
-int main()
+int main() @nogc
 {
-	alias MyTree = RTree!(ValueType, int, 2, float);
-	auto tree = new MyTree();
+	import std.experimental.allocator.mallocator : Mallocator;
+
+	alias MyTree = RTree!(Mallocator, ValueType, int, 2, float);
+	auto tree = MyTree.make();
 
 	int i, nhits;
 	auto nrects = rects.length;
-	import std.stdio : writeln;
-	writeln("nrects = ", nrects);
+	import std.stdio : printf;
+	printf("nrects = %ld\n", nrects);
 
 	for(i=0; i<nrects; i++)
 	{
@@ -67,7 +69,14 @@ int main()
 	import std.functional : toDelegate;
 	auto result = tree.search(search_rect.min, search_rect.max);
 
-	writeln("Search resulted in ", result[]);
+	printf("Search resulted in [");
+	foreach(e; result[])
+		printf("%d, ", e);
+	printf("]\n");
+
+	import std.algorithm : equal;
+	int[2] etalon = [1, 2];
+	assert(result[].equal(etalon[]));
 
 	// Iterator test
 	//int itIndex = 0;

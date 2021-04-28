@@ -50,13 +50,12 @@ int main(string[] args)
 		}
 	}
 
-	alias MyTree = RTree!(ValueType, CoordType, 2, float);
-	auto tree = new MyTree();
+	import std.experimental.allocator.mallocator : Mallocator;
+	auto tree = RTree!(Mallocator, ValueType, CoordType, 2, float).make();
 
-	int i;
 	writeln("number of rectangles is ", rectVector.length);
 
-	for(i=0; i<rectVector.length(); i++)
+	foreach(i; 0..cast(int)rectVector.length)
 	{
 		writeln(i, ": ", rectVector[i]);
 		tree.insert(rectVector[i].min, rectVector[i].max, i); // Note, all values including zero are fine in this version
