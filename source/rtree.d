@@ -17,7 +17,7 @@ module rtree;
  * Example:
  * ---
  *     // a 3-dimensional tree
- *     alias MyTree = RTree!(MAllocator, StructPtr, float, 3);
+ *     alias MyTree = RTree!(Allocator, StructPtr, float, 3);
  *     auto my_tree = new MyTree();
  * ---
  *
@@ -32,7 +32,7 @@ struct RTree(Allocator, DataType, ElemType, alias NumDims,
 public:
 
 	import std.container.array : Array;
-	import std.traits : hasMember, isCopyable;
+	import std.traits : hasMember;
 
 	// Precomputed volumes of the unit spheres for the first few dimensions
 	enum float[] UnitSphereVolume = [
@@ -64,21 +64,19 @@ public:
 			return instance;
 		}
 	}
-	else static if (isCopyable!Allocator)
+	else
 	{
-		private Allocator _allocator;
+		private Allocator* _allocator;
 
-		static make(Allocator a)
+		static make(ref Allocator a)
 		{
 			auto instance = typeof(this)(null);
+			instance._allocator = &a;
 			instance.m_root = instance.AllocNode();
 			instance.m_root.m_level = 0;
-			instance._allocator = a;
 			return instance;
 		}
 	}
-	else
-		static assert(0, "Unsupported type of allocator!");
 
 	@disable
 	this();
@@ -399,24 +397,52 @@ private:
 		return rect;
 	}
 
-	bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode) @nogc
+	import std.experimental.allocator.gc_allocator : GCAllocator;
+
+	static if (is(Allocator == GCAllocator))
 	{
-		assert(a_branch);
-		assert(a_node);
-
-		if(a_node.m_count < MaxNodes)  // Split won't be necessary
+		bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode)
 		{
-			a_node.m_branch[a_node.m_count] = *a_branch;
-			++a_node.m_count;
+			assert(a_branch);
+			assert(a_node);
 
-			return false;
+			if(a_node.m_count < MaxNodes)  // Split won't be necessary
+			{
+				a_node.m_branch[a_node.m_count] = *a_branch;
+				++a_node.m_count;
+
+				return false;
+			}
+			else
+			{
+				assert(a_newNode);
+
+				SplitNode(a_node, a_branch, a_newNode);
+				return true;
+			}
 		}
-		else
+	}
+	else
+	{
+		bool AddBranch(Branch* a_branch, Node* a_node, Node** a_newNode) @nogc
 		{
-			assert(a_newNode);
+			assert(a_branch);
+			assert(a_node);
 
-			SplitNode(a_node, a_branch, a_newNode);
-			return true;
+			if(a_node.m_count < MaxNodes)  // Split won't be necessary
+			{
+				a_node.m_branch[a_node.m_count] = *a_branch;
+				++a_node.m_count;
+
+				return false;
+			}
+			else
+			{
+				assert(a_newNode);
+
+				SplitNode(a_node, a_branch, a_newNode);
+				return true;
+			}
 		}
 	}
 
@@ -848,23 +874,24 @@ private:
 		}
 	}
 
-	ListNode* AllocListNode()
+	ListNode* AllocListNode() @safe
 	{
-		import core.lifetime : emplace;
+		import std.experimental.allocator : make;
+
 		static if (hasMember!(Allocator, "instance"))
-			auto ptr = Allocator.instance.allocate(ListNode.sizeof);
+			return Allocator.instance.make!ListNode;
 		else
-			auto ptr = _allocator.allocate(ListNode.sizeof);
-		return emplace!ListNode(ptr);
+			return _allocator.make!ListNode;
 	}
 
-	void FreeListNode(ListNode* a_listNode)
+	void FreeListNode(ListNode* a_listNode) @safe
 	{
-		auto memSlice = () @trusted { return (cast(void*) a_listNode)[0..a_listNode.sizeof]; }();
+		import std.experimental.allocator : dispose;
+
 		static if (hasMember!(Allocator, "instance"))
-			() @trusted { Allocator.instance.deallocate(memSlice); }();
+			() @trusted { Allocator.instance.dispose(a_listNode); }();
 		else
-            () @trusted { _allocator.deallocate(memSlice); }();
+            () @trusted { _allocator.dispose(a_listNode); }();
 	}
 
 	bool Overlap(Rect* a_rectA, Rect* a_rectB)
